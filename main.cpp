@@ -26,12 +26,12 @@ bool impulseModeActive = false;
 ImpulseMode currentImpulseMode = ImpulseMode::NONE;
 bool musicEnabled = true;
 
-// меню
+// menu
 int selectedGridSize = 1; // 0 = 7x7, 1 = 10x10, 2 = 12x12
 bool gridSizeButtons[3] = {false, true, false};
 bool musicButtonActive = true;
 
-// поле
+// grid
 std::vector<std::vector<CellState>> grid;
 int playerCells = 1;
 int aiCells = 1;
@@ -147,7 +147,6 @@ void loadSounds() {
     loseSound = LoadSound("assets/sounds/Door.mp3");
     drawSound = LoadSound("assets/sounds/Clark.mp3");
     
-    // Загружаем фоновую музыку (играет постоянно в фоне)
     backgroundMusic = LoadMusicStream("assets/sounds/Key.mp3");
     if (backgroundMusic.stream.buffer == NULL) {
         TraceLog(LOG_WARNING, "Failed to load background music");
@@ -202,10 +201,8 @@ void toggleMusic() {
 }
 
 void initializeGame() {
-    // Создаем поле
     grid.resize(gridSize, std::vector<CellState>(gridSize, CellState::NEUTRAL));
     
-    // Начальные позиции
     grid[0][0] = CellState::PLAYER;
     grid[gridSize-1][gridSize-1] = CellState::AI;
     
@@ -217,7 +214,6 @@ void initializeGame() {
     impulseModeActive = false;
     currentImpulseMode = ImpulseMode::NONE;
     
-    // Рассчитываем размеры для отрисовки
     float maxGridSize = std::min(WINDOW_WIDTH * 0.8f, WINDOW_HEIGHT * 0.8f);
     cellSize = maxGridSize / gridSize;
     gridOffsetX = (WINDOW_WIDTH - cellSize * gridSize) / 2;
@@ -225,14 +221,12 @@ void initializeGame() {
 }
 
 void resetGame() {
-    // Очищаем поле
     for (int x = 0; x < gridSize; x++) {
         for (int y = 0; y < gridSize; y++) {
             grid[x][y] = CellState::NEUTRAL;
         }
     }
     
-    // Восстанавливаем начальные позиции
     grid[0][0] = CellState::PLAYER;
     grid[gridSize-1][gridSize-1] = CellState::AI;
     
@@ -323,7 +317,6 @@ void updateMenu() {
         }
     }
     
-    // музыка
     if (CheckCollisionPointRec(mousePos, Rectangle{200, 260, 200, 40})) {
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             toggleMusic();
@@ -331,7 +324,6 @@ void updateMenu() {
         }
     }
     
-    // начать игру
     if (CheckCollisionPointRec(mousePos, Rectangle{WINDOW_WIDTH/2 - 100, 350, 200, 50})) {
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             switch(selectedGridSize) {
@@ -345,14 +337,12 @@ void updateMenu() {
         }
     }
     
-    // выход
     if (CheckCollisionPointRec(mousePos, Rectangle{WINDOW_WIDTH/2 - 100, 420, 200, 50})) {
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             CloseWindow();
         }
     }
     
-    // Горячие клавиши
     if (IsKeyPressed(KEY_SPACE)) {
         switch(selectedGridSize) {
             case 0: gridSize = 7; break;
@@ -382,7 +372,6 @@ void renderGame() {
             
         case GameState::PLAYING:
             {
-                // Отрисовка сетки
                 for (int x = 0; x < gridSize; x++) {
                     for (int y = 0; y < gridSize; y++) {
                         bool isSelected = false;
@@ -398,7 +387,7 @@ void renderGame() {
                     }
                 }
                 
-                // UI информация
+                // UI
                 int targetCells = (gridSize * gridSize * WIN_PERCENTAGE + 99) / 100;
                 std::string targetStr = "Target: " + std::to_string(targetCells) + " cells (" + std::to_string(WIN_PERCENTAGE) + "%)";
                 DrawText(targetStr.c_str(), WINDOW_WIDTH/2 - MeasureText(targetStr.c_str(), 20)/2, gridOffsetY - 40, 20, WHITE);
@@ -415,25 +404,23 @@ void renderGame() {
                 std::string aiChargesStr = "AI Charges: " + std::to_string(aiCharges);
                 DrawText(aiChargesStr.c_str(), 50, 50, 20, RED);
                 
-                // Индикатор хода
+                // turn
                 std::string turnStr = playerTurn ? "YOUR TURN" : "AI TURN";
                 Color turnColor = playerTurn ? BLUE : RED;
                 DrawText(turnStr.c_str(), WINDOW_WIDTH/2 - MeasureText(turnStr.c_str(), 30)/2, 20, 30, turnColor);
                 
-                // Индикатор импульса
+                // impulse
                 if (impulseModeActive) {
                     std::string modeStr = currentImpulseMode == ImpulseMode::ATTACK ? 
                                         "ATTACK MODE: Select 2 enemy cells (left click)" : 
                                         "SPEED MODE: Select 3 neutral cells (left click)";
                     DrawText(modeStr.c_str(), WINDOW_WIDTH/2 - MeasureText(modeStr.c_str(), 20)/2, WINDOW_HEIGHT - 40, 20, YELLOW);
                     
-                    // Счетчик выбранных клеток
                     std::string countStr = "Selected: " + std::to_string(selectedCells.size()) + "/" + 
                                          (currentImpulseMode == ImpulseMode::ATTACK ? "2" : "3");
                     DrawText(countStr.c_str(), WINDOW_WIDTH/2 - MeasureText(countStr.c_str(), 20)/2, WINDOW_HEIGHT - 65, 20, WHITE);
                 }
                 
-                // Индикатор музыки (только статус, без реакции на действия)
                 std::string musicStatus = musicEnabled ? "MUSIC: ON" : "MUSIC: OFF";
                 Color musicColor = musicEnabled ? GREEN : GRAY;
                 DrawText(musicStatus.c_str(), WINDOW_WIDTH - 150, WINDOW_HEIGHT - 20, 15, musicColor);
@@ -482,41 +469,35 @@ void renderGame() {
 }
 
 void renderMenuButtons() {
-    // Заголовок
     DrawText("TERRITORIAL CONTROL", WINDOW_WIDTH/2 - MeasureText("TERRITORIAL CONTROL", 40)/2, 50, 40, WHITE);
     
-    // Выбор размера сетки
     DrawText("Grid Size:", 150, 150, 25, WHITE);
     
-    // Кнопка 7x7
+    //  7x7
     Color button7x7Color = gridSizeButtons[0] ? YELLOW : LIGHTGRAY;
     DrawRectangle(200, 200, 100, 40, button7x7Color);
     DrawText("7x7", 230, 210, 20, BLACK);
     
-    // Кнопка 10x10
+    //  10x10
     Color button10x10Color = gridSizeButtons[1] ? YELLOW : LIGHTGRAY;
     DrawRectangle(320, 200, 100, 40, button10x10Color);
     DrawText("10x10", 340, 210, 20, BLACK);
     
-    // Кнопка 12x12
+    //  12x12
     Color button12x12Color = gridSizeButtons[2] ? YELLOW : LIGHTGRAY;
     DrawRectangle(440, 200, 100, 40, button12x12Color);
     DrawText("12x12", 460, 210, 20, BLACK);
     
-    // Кнопка музыки
     Color musicButtonColor = musicButtonActive ? GREEN : GRAY;
     DrawRectangle(200, 260, 200, 40, musicButtonColor);
     DrawText(musicEnabled ? "MUSIC: ON" : "MUSIC: OFF", 240, 270, 20, BLACK);
     
-    // Кнопка начала игры
     DrawRectangle(WINDOW_WIDTH/2 - 100, 350, 200, 50, YELLOW);
     DrawText("START GAME", WINDOW_WIDTH/2 - MeasureText("START GAME", 20)/2, 365, 20, BLACK);
     
-    // Кнопка выхода
     DrawRectangle(WINDOW_WIDTH/2 - 100, 420, 200, 50, GRAY);
     DrawText("EXIT", WINDOW_WIDTH/2 - MeasureText("EXIT", 20)/2, 435, 20, BLACK);
     
-    // Инструкции
     DrawText("Click buttons or use arrow keys + Enter", 
              WINDOW_WIDTH/2 - MeasureText("Click buttons or use arrow keys + Enter", 15)/2, 
              500, 15, LIGHTGRAY);
@@ -524,7 +505,7 @@ void renderMenuButtons() {
              WINDOW_WIDTH/2 - MeasureText("Press M to toggle music anytime", 15)/2, 
              530, 15, LIGHTGRAY);
     
-    // Правила игры
+    // rules
     DrawText("Game Rules:", WINDOW_WIDTH/2 - 100, 570, 25, WHITE);
     DrawText("- Capture neutral cells adjacent to your territory", 100, 610, 15, LIGHTGRAY);
     DrawText("- Collect charge for special moves (3 charges needed)", 100, 630, 15, LIGHTGRAY);
@@ -703,7 +684,6 @@ void handleImpulseCellSelection(int x, int y) {
         }
     } else if (currentImpulseMode == ImpulseMode::SPEED) {
         if (grid[x][y] == CellState::NEUTRAL && isValidMove(x, y, CellState::PLAYER)) {
-            // Проверяем, не выбрана ли уже эта клетка
             bool alreadySelected = false;
             for (auto& cell : selectedCells) {
                 if (cell.first == x && cell.second == y) {
@@ -716,7 +696,6 @@ void handleImpulseCellSelection(int x, int y) {
                 selectedCells.push_back({x, y});
             }
             
-            // Если выбраны 3 клетки, применяем эффект
             if (selectedCells.size() >= 3) {
                 for (auto& cell : selectedCells) {
                     grid[cell.first][cell.second] = CellState::PLAYER;
@@ -889,4 +868,5 @@ std::vector<std::pair<int, int>> getAISpeedMove() {
 ImpulseMode decideAIImpulseMode() {
     std::uniform_real_distribution<> dis(0.0, 1.0);
     return (dis(rng) < 0.5) ? ImpulseMode::ATTACK : ImpulseMode::SPEED;
+
 }
